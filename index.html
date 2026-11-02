@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>线下开票补录 · 需求说明（OS 端 PC 后台）</title>
+<style>
+  :root{
+    --primary:#2b7cff;
+    --primary-light:#eaf2ff;
+    --text:#1f2329;
+    --text-2:#4e5969;
+    --text-3:#86909c;
+    --border:#e5e6eb;
+    --bg:#f5f6f8;
+    --danger:#f53f3f;
+    --warn:#ff9a2e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--text);font-size:14px;line-height:1.7;
+  }
+  .page{max-width:1080px;margin:0 auto;background:#fff;padding:48px 56px 64px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+
+  h1{font-size:26px;font-weight:700;margin-bottom:6px;}
+  .sub{color:var(--text-3);font-size:13px;margin-bottom:28px;}
+
+  h2{
+    font-size:18px;font-weight:600;margin:36px 0 12px;padding-left:12px;
+    border-left:4px solid var(--primary);
+  }
+  h3{font-size:15px;font-weight:600;margin:22px 0 10px;color:var(--text);}
+  p{margin-bottom:10px;color:var(--text-2);}
+
+  table.doc{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px;}
+  table.doc th{
+    background:#f7f8fa;color:var(--text-2);font-weight:600;text-align:left;
+    padding:9px 12px;border:1px solid var(--border);white-space:nowrap;
+  }
+  table.doc td{padding:9px 12px;border:1px solid var(--border);color:var(--text-2);vertical-align:top;}
+  table.doc td.k{color:var(--text);font-weight:500;white-space:nowrap;background:#fcfcfd;width:110px;}
+  table.doc tr:hover td{background:#fafbfc;}
+
+  .rule{
+    background:var(--primary-light);border-radius:6px;padding:10px 14px;margin:12px 0 18px;
+    font-size:13px;color:var(--text-2);
+  }
+  .rule b{color:var(--text);}
+  .rid{color:var(--primary);font-weight:600;}
+
+  ul{margin:0 0 12px 20px;color:var(--text-2);}
+  li{margin-bottom:5px;}
+  code{
+    background:#f2f3f5;border-radius:3px;padding:1px 6px;font-size:12px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#d14;
+  }
+  .tag{display:inline-block;padding:1px 8px;border-radius:4px;font-size:12px;margin-right:6px;}
+  .t-must{background:#ffece8;color:var(--danger);}
+  .t-new{background:#e8f7ef;color:#00875a;}
+  .t-note{background:#fff7e8;color:#b0781a;}
+  .foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--text-3);}
+  .quote{
+    background:#fcfcfd;border-left:3px solid var(--border);padding:10px 14px;border-radius:0 4px 4px 0;
+    font-size:13px;color:var(--text-3);margin:0 0 14px;
+  }
+  a{color:var(--primary);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>线下开票补录 · 需求说明</h1>
+  <div class="sub">范围：OS 端 PC 后台「结算中心 / 开票管理」· 涉及 2 个页面（列表改造 + 补录页新建）+ 1 张详情页</div>
+
+  <h2>一、背景与目标</h2>
+
+  <h3>1.1 当前系统逻辑</h3>
+  <p>供应链订单的开票状态不是下单时就有的，而是由线上的开票单驱动：客户在供应链小程序申请开票、或财务在开票管理里新增开票，系统生成一张开票单并把订单置为「待开票 / 待审核」；财务确认开票后订单变为「已开票」，开票单作废后订单变为「已作废」。财务在「新增开票」里选订单时，系统只列出开票状态为「未开票、已关闭、已作废」的订单。</p>
+
+  <h3>1.2 存在的问题</h3>
+  <p>线下已经开过票的订单，因为系统里没有对应的开票单，会一直停在「未开票」，并长期出现在「新增开票」的可选订单列表里，财务据此可能再开一次票。</p>
+
+  <h3>1.3 目标</h3>
+  <p>提供一条把线下已开发票补录进系统的通道：补录完成后相关订单开票状态变为「已开票」，脱离「新增开票」的可选范围；补录生成的开票单在开票管理中可查、可追溯、可作废。</p>
+
+  <div class="quote">本页所有规则仅对 <b>PC 后台</b> 生效，移动端 / 小程序不在本次范围。</div>
+
+  <h2>二、本次改动总览</h2>
+  <table class="doc">
+    <tr><th>页面</th><th>类型</th><th>改动</th></tr>
+    <tr>
+      <td class="k">结算中心-开票管理</td>
+      <td><span class="tag t-new">改造</span></td>
+      <td>① 列表增加「线下开票补录」按钮；② 增加「开票来源」列与筛选（线上申请 / 线下补录）；③ 详情展示开票来源，线下补录单额外展示导入文件名、导入人、导入时间；④ 线下补录单支持作废，作废后关联订单回写「已作废」。</td>
+    </tr>
+    <tr>
+      <td class="k">开票管理-线下开票补录</td>
+      <td><span class="tag t-new">新建</span></td>
+      <td>选商户 → 填开票日期 → 导入线下开票台账 → 逐单校验 → 上传开票图片 → 提交。整批校验通过才可提交。</td>
+    </tr>
+    <tr>
+      <td class="k">开票管理-开票详情</td>
+      <td><span class="tag t-new">改造</span></td>
+      <td>线下补录单的详情形态：展示补录专属字段（导入文件名 / 导入人 / 导入时间）+ 关联订单及其开票状态 + 开票图片 + 作废入口。</td>
+    </tr>
+  </table>
+
+  <h2>三、PC/结算中心-开票管理（列表与详情）</h2>
+
+  <h3>3.1 业务新增需求</h3>
+  <table class="doc">
+    <tr><td class="k">1 入口</td><td>开票管理列表增加「线下开票补录」按钮，点击进入线下开票补录页。</td></tr>
+    <tr><td class="k">2 开票来源</td><td>列表增加「开票来源」列，取值为「线上申请」或「线下补录」；查询条件增加「开票来源」筛选，<b>默认不限制（显示全部）</b>。</td></tr>
+    <tr><td class="k">3 详情展示</td><td>详情页展示「开票来源」。线下补录生成的开票单，详情中额外展示本次导入的 <b>Excel 文件名、导入人、导入时间</b>。</td></tr>
+    <tr><td class="k">4 作废</td><td>线下补录生成的开票单支持作废；作废后，该单关联订单的开票状态回到「已作废」。</td></tr>
+  </table>
+
+  <h3>3.2 文案</h3>
+  <table class="doc">
+    <tr><td class="k">列表按钮</td><td><code>线下开票补录</code></td></tr>
+    <tr><td class="k">列名 / 筛选项</td><td><code>开票来源</code>；取值 <code>线上申请</code>、<code>线下补录</code></td></tr>
+    <tr><td class="k">详情字段</td><td><code>开票来源</code>、<code>导入文件名</code>、<code>导入人</code>、<code>导入时间</code></td></tr>
+  </table>
+
+  <h3>3.3 验收</h3>
+  <ul>
+    <li>开票管理列表能看到「线下开票补录」按钮，点击后进入补录页。</li>
+    <li>线上申请产生的开票单「开票来源」显示「线上申请」，线下补录产生的显示「线下补录」。</li>
+    <li>选择「开票来源 = 线下补录」筛选，列表中只剩线下补录的单据。</li>
+    <li>打开一张线下补录单的详情，能看到开票来源、导入文件名、导入人、导入时间。</li>
+    <li>对一张线下补录单执行作废，作废后该单关联订单在销售订单详情中的开票状态显示「已作废」。</li>
+  </ul>
+
+  <h2>四、PC/结算中心-开票管理-线下开票补录（新建）</h2>
+
+  <h3>4.1 需求说明</h3>
+  <p>财务在线下已经给供应链订单开过票，但线上没有任何记录，订单仍显示未开票，可能被重复开票。本页用于财务把线下已开的票补录进系统：补录完成后，本次补录的订单开票状态变为「已开票」，不再出现在开票可选订单列表里。</p>
+
+  <h3>4.2 页面结构</h3>
+  <table class="doc">
+    <tr><td class="k">① 补录信息</td><td>商户（必填，单选） · 开票类型（固定「快销品采购」，不可修改） · 开票日期（必填） · 导入 Excel（含模板口径说明）。</td></tr>
+    <tr><td class="k">② 订单校验</td><td>校验汇总（共 N 单 / 通过 X / 不通过 Y）+ 整批拦截提示 + 逐单结果表（订单流水号 / 系统订单金额 / 表格金额 / 校验结果 + 不通过原因）。</td></tr>
+    <tr><td class="k">③ 开票图片</td><td>至少 1 张，支持多张。</td></tr>
+    <tr><td class="k">底部操作</td><td>返回 / 提交。</td></tr>
+  </table>
+
+  <h3>4.3 规则</h3>
+  <table class="doc">
+    <tr><th>编号</th><th>规则</th></tr>
+    <tr><td class="k">R1 入口</td><td>财务在 PC 后台「结算中心-开票管理」列表点击「线下开票补录」进入本页。</td></tr>
+    <tr><td class="k">R2 选商户</td><td>进入本页后先选择商户，必填，只能选一个商户。</td></tr>
+    <tr><td class="k">R3 开票类型</td><td>固定为「快销品采购」，不可修改；本期只处理供应链订单。</td></tr>
+    <tr><td class="k">R4 开票日期</td><td>必填，财务录入这张线下发票的开票日期，格式 <code>YYYY-MM-DD</code>。</td></tr>
+    <tr><td class="k">R5 导入 Excel</td><td>
+      1. 上传财务现有的线下开票台账，系统从表头读取「订单流水号」和「折后商品销售金额」两列，其余列不读取；表头缺少这两列任一时，提示「表格格式不正确，请使用线下开票台账模板」。<br>
+      2. 模板说明中注明「导入前请将金额列另存为数值」。金额列为公式时，未重算会读到旧值，导致金额校验误判。
+    </td></tr>
+    <tr><td class="k">R6 订单识别</td><td>同一个订单流水号在表格中出现多行时，合并为一个订单，金额按行相加。</td></tr>
+    <tr><td class="k">R7 订单校验</td><td>对 R6 得到的每个订单，必须同时满足以下四项，否则该订单校验不通过：① 订单在系统中存在；② 订单属于 R2 所选商户；③ 订单状态为「交易完成」；④ 订单当前开票状态为「未开票、已关闭、已作废」之一（即尚未开过票）。</td></tr>
+    <tr><td class="k">R8 对冲单校验</td><td>若订单存在对冲单（订单流水号带 <code>-D</code> 后缀），则主单与全部对冲单必须在本次表格中同时出现；只出现部分时，该主单校验不通过。</td></tr>
+    <tr><td class="k">R9 金额校验</td><td>
+      1. 系统订单金额取该订单在销售订单详情页展示的「订单金额」。<br>
+      2. 表格金额按行先四舍五入到分，再按订单相加；系统订单金额与表格金额均精确到分后比对。<br>
+      3. 两者不一致时，该订单校验不通过。
+    </td></tr>
+    <tr><td class="k">R10 结果展示</td><td>页面列出本次导入的全部订单，逐单展示订单流水号、系统订单金额、表格金额、校验结果；不通过的订单显示不通过原因（订单不存在 / 不属于所选商户 / 非交易完成 / 已开过票 / 对冲单未齐全 / 金额不一致）。</td></tr>
+    <tr><td class="k">R11 提交条件</td><td>只要存在任一订单校验不通过，整批不允许提交，页面提示「存在校验不通过订单，请修改表格后重新上传」，财务修改 Excel 后重新上传；不允许只提交校验通过的部分。</td></tr>
+    <tr><td class="k">R12 开票图片</td><td>上传开票图片，必填，至少 1 张，支持多张。</td></tr>
+    <tr><td class="k">R13 提交结果</td><td>提交成功后，本次补录的订单开票状态变为「已开票」，系统生成一张与本次补录对应的开票单并记入开票管理列表（开票来源为「线下补录」）。</td></tr>
+    <tr><td class="k">R14 防重复</td><td>同一订单一旦补录成功，再次被上传时按 R7 第 4 项判为不通过（已开过票），不会被重复标记。</td></tr>
+  </table>
+
+  <h3>4.4 文案</h3>
+  <table class="doc">
+    <tr><td class="k">页面标题</td><td><code>线下开票补录</code></td></tr>
+    <tr><td class="k">字段名</td><td><code>商户</code>、<code>开票类型</code>、<code>开票日期</code>、<code>订单流水号</code>、<code>系统订单金额</code>、<code>表格金额</code>、<code>校验结果</code></td></tr>
+    <tr><td class="k">操作按钮</td><td><code>导入Excel</code>、<code>上传开票图片</code>、<code>提交</code></td></tr>
+    <tr><td class="k">提示语</td><td>
+      表格格式错误：<code>表格格式不正确，请使用线下开票台账模板</code><br>
+      存在不通过订单：<code>存在校验不通过订单，请修改表格后重新上传</code><br>
+      未上传图片：<code>请上传开票图片</code><br>
+      提交成功：<code>补录成功，共 N 个订单开票状态已更新为已开票</code>
+    </td></tr>
+  </table>
+
+  <h3>4.5 验收</h3>
+  <ul>
+    <li>财务在 PC「结算中心-开票管理」列表点击「线下开票补录」，可以进入补录页。</li>
+    <li>不选商户直接提交，页面提示需要选择商户；开票类型显示「快销品采购」且不可修改。</li>
+    <li>不填开票日期直接提交，页面提示需要填写开票日期。</li>
+    <li>上传缺少「订单流水号」列或缺少「折后商品销售金额」列的表格，页面提示表格格式不正确。</li>
+    <li>上传一张同一订单号出现 4 行的表格，页面只展示 1 个订单，表格金额为该 4 行之和。</li>
+    <li>上传一张包含「已开过票」订单的表格，该订单显示不通过原因为「已开过票」，整批无法提交。</li>
+    <li>上传一张表格金额与系统订单金额相差 1 分的表格，该订单显示不通过原因为「金额不一致」，整批无法提交；把表格金额改成与系统订单金额一致后重新上传，该订单校验通过。</li>
+    <li>上传一张只有主单、没有其 <code>-D</code> 对冲单的表格，该主单显示不通过原因为「对冲单未齐全」。</li>
+    <li>上传全部通过的表格、填写开票日期、不上传图片直接提交，页面提示请上传开票图片。</li>
+    <li>上传全部通过的表格、填写开票日期、上传 1 张开票图片后提交，页面提示「补录成功，共 N 个订单开票状态已更新为已开票」。</li>
+    <li>提交成功后，打开其中一个订单的销售订单详情，开票状态显示「已开票」。</li>
+    <li>提交成功后，财务再进入「新增开票」选订单，这些订单不再出现在可选列表中。</li>
+    <li>提交成功后，在开票管理列表按「开票来源 = 线下补录」筛选，能查到本次生成的开票单，详情中能看到导入文件名、导入人、导入时间。</li>
+    <li>把已补录成功的订单重新导一次，页面显示该订单「已开过票」，无法提交。</li>
+  </ul>
+
+  <h2>五、开票详情（线下补录单）</h2>
+  <p>线下补录单的详情在通用开票详情基础上，额外承载补录来源信息与作废能力，需满足：</p>
+  <table class="doc">
+    <tr><td class="k">状态区</td><td>置顶展示单据状态（已开票 / 已作废）、开票来源标签、单据号与提交时间。</td></tr>
+    <tr><td class="k">补录信息</td><td>商户、开票来源、开票类型、开票日期、开票金额、<b>导入文件名、导入人、导入时间</b>、订单笔数。</td></tr>
+    <tr><td class="k">关联订单</td><td>逐单展示订单流水号、订单金额、开票状态；开票状态随本单联动（本单有效 → 已开票；本单作废 → 已作废）。</td></tr>
+    <tr><td class="k">开票图片</td><td>展示补录时上传的发票影像，可查看原图。</td></tr>
+    <tr><td class="k">操作</td><td>返回 / 作废。作废需二次确认，确认后提示关联订单将回写「已作废」并可重新被选择开票。</td></tr>
+  </table>
+
+  <h2>六、原型交付</h2>
+  <table class="doc">
+    <tr><td class="k">线下开票补录页</td><td><a href="https://wyy1746919440.github.io/os-invoice-offline/" target="_blank">https://wyy1746919440.github.io/os-invoice-offline/</a></td></tr>
+    <tr><td class="k">开票详情（线下补录）</td><td><a href="https://wyy1746919440.github.io/os-invoice-offline-detail/" target="_blank">https://wyy1746919440.github.io/os-invoice-offline-detail/</a></td></tr>
+    <tr><td class="k">说明</td><td>原型为免登录直链。补录页内置 6 份示例台账（全通过 / 多类异常 / 金额差 1 分 / 缺对冲单 / 同单号 4 行 / 缺列），可直接点选体验各校验分支；详情页可演示作废与开票状态回写。</td></tr>
+  </table>
+
+  <div class="foot">规则编号 R1–R14 用于评审与开发对齐时的精确引用；页面叫法以实际菜单为准，如菜单位置不同仅需同步调整路径。</div>
+</div>
+</body>
+</html>
